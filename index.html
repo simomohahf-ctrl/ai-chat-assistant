@@ -4,50 +4,73 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a1a">
-<title>ZAI Chat — مساعد ذكي</title>
+<title>ZAI — مساعد ذكي بصير</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--bg:#0a0a1a;--card:#151528;--accent:#6c5ce7;--accent2:#00b894;--text:#e8e8f0;--dim:#8888aa;--err:#e74c3c}
+:root{--bg:#0a0a1a;--card:#151528;--accent:#6c5ce7;--accent2:#00b894;--vision:#e94560;--text:#e8e8f0;--dim:#8888aa;--err:#e74c3c}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-#header{background:var(--card);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #22223a}
-#header .logo{font-size:24px}
-#header h1{font-size:16px;font-weight:700}
-#header .sub{font-size:11px;color:var(--dim)}
-#status{margin-left:auto;font-size:11px;padding:4px 10px;border-radius:12px;background:#1a1a2e;color:var(--dim)}
+
+/* Header */
+#header{background:var(--card);padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #22223a}
+#header .logo{font-size:22px}
+#header h1{font-size:15px;font-weight:700}
+#header .sub{font-size:10px;color:var(--dim)}
+#status{margin-left:auto;font-size:10px;padding:3px 8px;border-radius:10px;background:#1a1a2e;color:var(--dim)}
 #status.on{color:var(--accent2)}
 #status.err{color:var(--err)}
-#messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+#status.vision{color:var(--vision);background:#2a1020}
+
+/* Vision Bar - big prominent button */
+#visionBar{background:var(--card);padding:8px;border-top:1px solid #22223a;display:flex;gap:8px}
+#visionBtn{flex:1;padding:12px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+#visionBtn.off{background:linear-gradient(135deg,#e94560,#ff6b6b);color:#fff}
+#visionBtn.on{background:linear-gradient(135deg,#00b894,#0ed4a0);color:#fff}
+#visionBtn:active{transform:scale(.97)}
+
+/* Camera Preview */
+#camView{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:360px;height:auto;aspect-ratio:3/4;border-radius:16px;overflow:hidden;border:3px solid var(--vision);z-index:200;display:none;box-shadow:0 0 30px rgba(233,69,96,.4)}
+#camView video{width:100%;height:100%;object-fit:cover}
+#camView.show{display:block}
+#camOverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:150;display:none}
+#camOverlay.show{display:block}
+
+/* Messages */
+#messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
 .msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
 .msg.bot{align-self:flex-start;background:var(--card);border:1px solid #22223a;border-bottom-left-radius:4px}
-.msg.sys{align-self:center;background:transparent;color:var(--dim);font-size:12px;text-align:center}
+.msg.sys{align-self:center;background:transparent;color:var(--dim);font-size:12px;text-align:center;padding:6px 16px}
 .msg.error{align-self:center;background:#2a1515;border:1px solid var(--err);color:#ffaaa0;font-size:13px}
 .msg pre{background:#0d0d18;padding:8px;border-radius:8px;margin:6px 0;overflow-x:auto;font-size:12px}
 .msg code{background:#0d0d18;padding:2px 5px;border-radius:4px;font-size:13px}
-.welcome{text-align:center;padding:40px 20px;color:var(--dim)}
-.welcome .icon{font-size:48px;margin-bottom:12px}
-.welcome h2{font-size:18px;color:var(--text);margin-bottom:6px}
-.welcome p{font-size:13px;margin-bottom:20px}
-.quick{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+
+/* Welcome */
+.welcome{text-align:center;padding:30px 20px;color:var(--dim)}
+.welcome .icon{font-size:48px;margin-bottom:10px}
+.welcome h2{font-size:20px;color:var(--text);margin-bottom:6px}
+.welcome p{font-size:13px;margin-bottom:16px}
+.quick{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px}
 .quick button{background:var(--card);border:1px solid #333355;color:var(--text);padding:8px 14px;border-radius:20px;font-size:12px;cursor:pointer}
 .quick button:active{background:var(--accent)}
-#inputBar{background:var(--card);padding:10px;border-top:1px solid #22223a;display:flex;gap:8px;align-items:flex-end}
+
+/* Input */
+#inputBar{background:var(--card);padding:8px;border-top:1px solid #22223a;display:flex;gap:6px;align-items:flex-end}
 #inputBar textarea{flex:1;background:#0d0d18;border:1px solid #333355;color:var(--text);border-radius:20px;padding:10px 14px;font-size:14px;resize:none;max-height:100px;min-height:42px;line-height:1.4}
-#inputBar button{width:42px;height:42px;border:none;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+#inputBar button{width:40px;height:40px;border:none;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 #sendBtn{background:var(--accent);color:#fff}
-#camBtn{background:#1a1a2e;color:var(--text)}
-#camBtn.active{background:var(--accent2)}
 #micBtn{background:#1a1a2e;color:var(--text)}
 #micBtn.active{background:#e74c3c;color:#fff;animation:pulse 1s infinite}
+#camBtn{background:#1a1a2e;color:var(--text);font-size:16px}
+#camBtn.active{background:var(--vision);color:#fff}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 .typing{display:inline-flex;gap:4px;padding:8px 0}
 .typing span{width:8px;height:8px;border-radius:50%;background:var(--dim);animation:bounce 1.4s infinite}
 .typing span:nth-child(2){animation-delay:.2s}
 .typing span:nth-child(3){animation-delay:.4s}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}}
-#camView{position:fixed;bottom:80px;right:10px;width:120px;height:160px;border-radius:12px;overflow:hidden;border:2px solid var(--accent);z-index:100;display:none}
-#camView video{width:100%;height:100%;object-fit:cover}
-#camView.show{display:block}
+
+/* Vision badge */
+.vision-badge{display:inline-block;background:var(--vision);color:#fff;font-size:10px;padding:2px 8px;border-radius:8px;margin-right:4px}
 </style>
 </head>
 <body>
@@ -55,8 +78,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
 <div id="header">
   <span class="logo">🧠</span>
   <div>
-    <h1>ZAI Chat</h1>
-    <div class="sub">مساعد ذكي بالعربية</div>
+    <h1>ZAI</h1>
+    <div class="sub">مساعد ذكي بصير</div>
   </div>
   <span id="status">جاهز</span>
 </div>
@@ -64,24 +87,31 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
 <div id="messages">
   <div class="welcome">
     <div class="icon">🧠</div>
-    <h2>ZAI Chat</h2>
-    <p>مساعدك الذكي — هضر معاه بأي لغة</p>
+    <h2>ZAI</h2>
+    <p>مساعدك الذكي — هضر معاه وكيفكر بالكاميرا</p>
     <div class="quick">
       <button onclick="quickSend('مرحبا، كيف حالك؟')">💬 مرحبا</button>
       <button onclick="quickSend('اكتب لي كود HTML بسيط')">💻 كود</button>
-      <button onclick="quickSend('اشرح لي الذكاء الاصطناعي ببساطة')">📚 اشرح</button>
-      <button onclick="startCam()">📷 بصير</button>
+      <button onclick="quickSend('اشرح لي الذكاء الاصطناعي')">📚 اشرح</button>
     </div>
   </div>
 </div>
 
+<div id="camOverlay"></div>
 <div id="camView"><video id="camVideo" autoplay playsinline muted></video></div>
 
 <div id="inputBar">
   <button id="camBtn" onclick="toggleCam()" title="بصير">📷</button>
   <button id="micBtn" onclick="toggleMic()" title="ميكرو">🎤</button>
-  <textarea id="input" rows="1" placeholder="اكتب رسالتك..." oninput="autoGrow(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
+  <textarea id="input" rows="1" placeholder="اكتب ولا هضر..." oninput="autoGrow(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
   <button id="sendBtn" onclick="send()">➤</button>
+</div>
+
+<div id="visionBar">
+  <button id="visionBtn" class="off" onclick="toggleCam()">
+    <span>👁️</span>
+    <span id="visionBtnText">تشغيل البصير (كاميرا)</span>
+  </button>
 </div>
 
 <script>
@@ -92,11 +122,14 @@ let messages = [];
 let camStream = null;
 let camActive = false;
 let recognizing = false;
+let recognition = null;
 
 const $ = id => document.getElementById(id);
 const msgsEl = $('messages');
 const inputEl = $('input');
 const statusEl = $('status');
+const visionBtn = $('visionBtn');
+const visionBtnText = $('visionBtnText');
 
 function autoGrow(el) {
   el.style.height = 'auto';
@@ -106,7 +139,6 @@ function autoGrow(el) {
 function addMsg(role, text) {
   const el = document.createElement('div');
   el.className = 'msg ' + role;
-  // simple formatting
   let html = text
     .replace(/```(\w*)\n?([\s\S]*?)```/g, (m,l,c) => '<pre><code>'+esc(c.trim())+'</code></pre>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -118,12 +150,7 @@ function addMsg(role, text) {
 }
 
 function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-
-function setStatus(text, cls) {
-  statusEl.textContent = text;
-  statusEl.className = cls || '';
-}
-
+function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls || ''; }
 function showTyping() {
   const el = document.createElement('div');
   el.className = 'msg bot';
@@ -132,7 +159,6 @@ function showTyping() {
   msgsEl.appendChild(el);
   msgsEl.scrollTop = msgsEl.scrollHeight;
 }
-
 function hideTyping() { const t = $('typing'); if (t) t.remove(); }
 
 async function send() {
@@ -143,14 +169,13 @@ async function send() {
   inputEl.style.height = 'auto';
   addMsg('user', text);
   
-  // Build messages array
   const apiMessages = [{ role: 'system', content: SYS }];
   for (const m of messages) {
     apiMessages.push({ role: m.role, content: m.content });
   }
   apiMessages.push({ role: 'user', content: text });
   
-  // If camera is active, capture frame and add it
+  // If camera active, capture frame
   let vision = false;
   if (camActive && camStream) {
     try {
@@ -182,25 +207,32 @@ async function send() {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: apiMessages,
-        vision: vision,
-        temperature: 0.7
-      })
+      body: JSON.stringify({ messages: apiMessages, vision, temperature: 0.7 })
     });
     
     const data = await res.json();
     hideTyping();
     
     if (!res.ok || data.error) {
-      addMsg('error', '⚠️ ' + (data.error || 'خطأ فالسيرفر (' + res.status + ')'));
+      addMsg('error', '⚠️ ' + (data.error || 'خطأ (' + res.status + ')'));
       setStatus('خطأ', 'err');
     } else {
       const reply = data.reply || 'ما قدرتش نجاوب';
-      addMsg('bot', reply);
+      const prefix = vision ? '<span class="vision-badge">👁️ بصير</span> ' : '';
+      const el = document.createElement('div');
+      el.className = 'msg bot';
+      let html = prefix + reply
+        .replace(/```(\w*)\n?([\s\S]*?)```/g, (m,l,c) => '<pre><code>'+esc(c.trim())+'</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+      el.innerHTML = html;
+      msgsEl.appendChild(el);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      
       messages.push({ role: 'user', content: text });
       messages.push({ role: 'assistant', content: reply });
-      setStatus('جاهز', 'on');
+      setStatus(camActive ? 'بصير نشط' : 'جاهز', camActive ? 'vision' : 'on');
       speak(reply);
     }
   } catch (e) {
@@ -210,18 +242,11 @@ async function send() {
   }
 }
 
-function quickSend(text) {
-  inputEl.value = text;
-  send();
-}
+function quickSend(text) { inputEl.value = text; send(); }
 
 // === CAMERA / VISION ===
 async function toggleCam() {
-  if (camActive) {
-    stopCam();
-  } else {
-    startCam();
-  }
+  if (camActive) { stopCam(); } else { await startCam(); }
 }
 
 async function startCam() {
@@ -232,68 +257,51 @@ async function startCam() {
     });
     $('camVideo').srcObject = camStream;
     $('camView').classList.add('show');
+    $('camOverlay').classList.add('show');
     $('camBtn').classList.add('active');
+    visionBtn.classList.remove('off');
+    visionBtn.classList.add('on');
+    visionBtnText.textContent = '⏹️ البصير نشط — اضغط للإيقاف';
     camActive = true;
-    addMsg('sys', '📷 البصير تفعّل — كنشوف بالكاميرا. سولني على أي حاجة كنشوفها.');
-    setStatus('بصير نشط', 'on');
+    addMsg('sys', '👁️ البصير تفعّل! وجه الكاميرا على أي حاجة بغيتي نشوفها، وكتب سؤالك وتحليل نعطيك.');
+    setStatus('بصير نشط', 'vision');
+    speak('البصير تفعل. وجه الكاميرا على أي حادة وسولني عليها.');
   } catch (e) {
-    addMsg('error', '⚠️ ما قدرتش نشغل الكاميرا: ' + e.message + ' — سمح للتطبيق يستعمل الكاميرا');
+    addMsg('error', '⚠️ ما قدرتش نشغل الكاميرا: ' + e.message + '\nسمح للتطبيق يستعمل الكاميرا من الإعدادات');
     setStatus('خطأ', 'err');
   }
 }
 
 function stopCam() {
-  if (camStream) {
-    camStream.getTracks().forEach(t => t.stop());
-    camStream = null;
-  }
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
   $('camView').classList.remove('show');
+  $('camOverlay').classList.remove('show');
   $('camBtn').classList.remove('active');
+  visionBtn.classList.remove('on');
+  visionBtn.classList.add('off');
+  visionBtnText.textContent = 'تشغيل البصير (كاميرا)';
   camActive = false;
   setStatus('جاهز', 'on');
-  addMsg('sys', '📷 البصير توقف');
+  addMsg('sys', '👁️ البصير توقف');
 }
 
+// Click overlay to close camera
+$('camOverlay').addEventListener('click', stopCam);
+
 // === VOICE ===
-function toggleMic() {
-  if (recognizing) {
-    stopMic();
-  } else {
-    startMic();
-  }
-}
+function toggleMic() { if (recognizing) { stopMic(); } else { startMic(); } }
 
 function startMic() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    addMsg('error', '⚠️ المتصفح ديالك ما كيدعمش الإدخال الصوتي. جرّب Chrome.');
-    return;
-  }
-  
+  if (!SR) { addMsg('error', '⚠️ المتصفح ما كيدعمش الميكرو. جرّب Chrome.'); return; }
   recognition = new SR();
   recognition.lang = 'ar-SA';
   recognition.continuous = false;
   recognition.interimResults = false;
-  
-  recognition.onstart = () => {
-    recognizing = true;
-    $('micBtn').classList.add('active');
-    setStatus('كنسمع...', 'on');
-  };
-  
-  recognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    inputEl.value = text;
-    inputEl.focus();
-  };
-  
-  recognition.onerror = (e) => {
-    addMsg('error', '⚠️ خطأ فالميكرو: ' + e.error);
-    stopMic();
-  };
-  
+  recognition.onstart = () => { recognizing = true; $('micBtn').classList.add('active'); setStatus('كنسمع...', 'on'); };
+  recognition.onresult = (e) => { inputEl.value = e.results[0][0].transcript; inputEl.focus(); autoGrow(inputEl); };
+  recognition.onerror = (e) => { addMsg('error', '⚠️ خطأ فالميكرو: ' + e.error); stopMic(); };
   recognition.onend = () => { stopMic(); };
-  
   recognition.start();
 }
 
@@ -301,12 +309,11 @@ function stopMic() {
   if (recognition) { try { recognition.stop(); } catch(e){} }
   recognizing = false;
   $('micBtn').classList.remove('active');
-  if (statusEl.textContent === 'كنسمع...') setStatus('جاهز', 'on');
+  if (statusEl.textContent === 'كنسمع...') setStatus(camActive ? 'بصير نشط' : 'جاهز', camActive ? 'vision' : 'on');
 }
 
 function speak(text) {
   if (!window.speechSynthesis) return;
-  // Clean text of code blocks for speech
   const clean = text.replace(/```[\s\S]*?```/g, ' كود. ').replace(/[*#`]/g, '');
   const u = new SpeechSynthesisUtterance(clean);
   u.lang = 'ar-SA';
@@ -314,13 +321,6 @@ function speak(text) {
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
-
-// Clear chat on long press of header
-$('header').addEventListener('long-press', () => {
-  messages = [];
-  msgsEl.innerHTML = '';
-  addMsg('sys', 'تم مسح المحادثة');
-});
 </script>
 </body>
 </html>
