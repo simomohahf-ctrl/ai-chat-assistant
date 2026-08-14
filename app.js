@@ -102,7 +102,7 @@ function renderMessages() {
             <div class="welcome-icon">🧠</div><h2>ZAI Vision</h2>
             <p>مساعدك الذكي اللي كيشوف الشاشة وكيجاوبك بصوت</p>
             <div class="feature-cards">
-                <div class="feature-card" onclick="startVisionMode()"><span class="feature-icon">👁️</span><span>تشغيل البصير</span><small>البوت كيشوف شاشتك</small></div>
+                <div class="feature-card" onclick="startVisionMode()"><span class="feature-icon">👁️</span><span>تشغيل البصير</span><small>شاشة أو كاميرا</small></div>
                 <div class="feature-card" onclick="toggleVoice()"><span class="feature-icon">🎤</span><span>محادثة صوتية</span><small>هضر مع البوت</small></div>
                 <div class="feature-card" onclick="setQuickPrompt('اشرح لي اللي كاين فالشاشة')"><span class="feature-icon">🔍</span><span>تحليل الشاشة</span></div>
                 <div class="feature-card" onclick="setQuickPrompt('كتب لي كود')"><span class="feature-icon">💻</span><span>برمجة</span></div>
@@ -259,50 +259,89 @@ async function sendMessage(withScreen = false) {
 
 function setQuickPrompt(text) { userInputEl.value = text; userInputEl.focus(); autoResize(); }
 
-// === VISION MODE (Live Screen Analysis) ===
+// === VISION MODE (Live Screen or Camera Analysis) ===
+let visionSource = 'none'; // 'screen' or 'camera'
+
+function supportsScreenShare() {
+    return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function');
+}
+
 async function startVisionMode() {
+    // Most Android/iOS mobile browsers do NOT support getDisplayMedia (screen share).
+    // On mobile, fall back automatically to the rear camera as a "live vision" source.
+    if (supportsScreenShare()) {
+        try {
+            displayStream = await navigator.mediaDevices.getDisplayMedia({
+                video: { frameRate: 30, displaySurface: 'monitor' },
+                audio: false,
+                preferCurrentTab: false
+            });
+            visionSource = 'screen';
+        } catch (err) {
+            // User cancelled screen share picker or it failed — try camera fallback
+            return await startCameraVisionMode(true);
+        }
+    } else {
+        // No screen-share support on this browser/device — use camera instead
+        return await startCameraVisionMode(false);
+    }
+
+    setupVisionStream();
+}
+
+async function startCameraVisionMode(wasScreenAttempt) {
     try {
-        // Request screen capture - prefer monitor (full screen) for persistence
-        displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: { frameRate: 30, displaySurface: 'monitor' },
-            audio: false,
-            preferCurrentTab: false
+        displayStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
         });
+        visionSource = 'camera';
+        setupVisionStream();
+        if (wasScreenAttempt) {
+            appendMessage('vision', 'ℹ️ الهاتف ديالك ما كيدعمش مشاركة الشاشة من المتصفح، فاستعملت الكاميرا الخلفية بدالها. وجّه الكاميرا على أي حاجة بغيتي نشوفها (شاشة، ورقة، واجهة app...) وسولني عليها.');
+        }
+    } catch (err) {
+        alert('ما قدرتش نشغل الكاميرا للبصير: ' + err.message + '\n\nلازم تسمح للمتصفح يستعمل الكاميرا (Camera permission).');
+    }
+}
 
-        visionVideo = $('visionVideo');
-        visionCanvas = $('visionCanvas');
-        visionVideo.srcObject = displayStream;
-        visionVideo.play();
+function setupVisionStream() {
+    visionVideo = $('visionVideo');
+    visionCanvas = $('visionCanvas');
+    visionVideo.srcObject = displayStream;
+    visionVideo.play();
 
-        visionActive = true;
-        visionBarEl.classList.remove('hidden');
-        $('statusDot').className = 'status-dot vision';
-        $('statusText').textContent = 'البصير نشط';
-        floatingOverlayEl.classList.remove('hidden');
-        overlayContentEl.innerHTML = '<p class="overlay-waiting">👁️ البصير نشط... كنشوف الشاشة</p>';
+    visionActive = true;
+    visionBarEl.classList.remove('hidden');
+    $('statusDot').className = 'status-dot vision';
+    $('statusText').textContent = visionSource === 'camera' ? 'البصير نشط (كاميرا)' : 'البصير نشط';
+    floatingOverlayEl.classList.remove('hidden');
+    overlayContentEl.innerHTML = visionSource === 'camera'
+        ? '<p class="overlay-waiting">📷 البصير نشط... كنشوف بالكاميرا</p>'
+        : '<p class="overlay-waiting">👁️ البصير نشط... كنشوف الشاشة</p>';
 
-        // Handle user stopping screen share
-        displayStream.getVideoTracks()[0].addEventListener('ended', () => {
-            stopVisionMode();
-        });
+    // Handle stream ending (user revokes permission / stops sharing)
+    displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+        stopVisionMode();
+    });
 
-        // Start periodic analysis
-        const intervalMs = 1000 / settings.visionFps;
-        visionInterval = setInterval(() => {
-            if (visionActive) analyzeScreenFrame();
-        }, intervalMs);
+    // Start periodic analysis
+    const intervalMs = 1000 / settings.visionFps;
+    visionInterval = setInterval(() => {
+        if (visionActive) analyzeScreenFrame();
+    }, intervalMs);
 
-        // Initial message
+    if (visionSource === 'screen') {
         appendMessage('vision', '👁️ البصير تفعّل! دابا كنشوف الشاشة ديالك. تقدر تسولني على أي حاجة كاينة فيها، ولا نهضر معاك بصوت.');
         speakResponse('البصير تفعل! دابا كنشوف الشاشة. تسولني على أي حاجة.');
-
-    } catch (err) {
-        alert('ما قدرتش نشغل البصير: ' + err.message + '\n\nلازم تختار "Share entire screen" باش البصير يستمر حتى منين تخرج من المتصفح.');
+    } else {
+        speakResponse('البصير تفعل بالكاميرا. وجه الكاميرا على أي حاجة وسولني عليها.');
     }
 }
 
 function stopVisionMode() {
     visionActive = false;
+    visionSource = 'none';
     if (visionInterval) { clearInterval(visionInterval); visionInterval = null; }
     if (displayStream) { displayStream.getTracks().forEach(t => t.stop()); displayStream = null; }
     visionBarEl.classList.add('hidden');
