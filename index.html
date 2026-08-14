@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d1117">
+    <title>ZAI Vision — مساعد ذكي بصير</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">🧠</span>
+                    <span class="logo-text">ZAI Vision</span>
+                </div>
+                <button id="newChat" class="new-chat-btn">+ محادثة جديدة</button>
+            </div>
+            <div id="chatList" class="chat-list"></div>
+            <div class="sidebar-footer">
+                <button id="visionModeBtn" class="footer-btn vision-btn">👁️ وضع البصير (شاشة حية)</button>
+                <button id="settingsBtn" class="footer-btn">⚙️ الإعدادات</button>
+            </div>
+        </div>
+
+        <div id="mainArea" class="main-area">
+            <div class="chat-header">
+                <button id="menuToggle" class="menu-toggle">☰</button>
+                <div class="chat-title">ZAI Vision</div>
+                <div class="header-status">
+                    <span id="statusDot" class="status-dot online"></span>
+                    <span id="statusText" class="status-text">جاهز</span>
+                </div>
+            </div>
+
+            <!-- Vision Mode Bar -->
+            <div id="visionBar" class="vision-bar hidden">
+                <div class="vision-bar-content">
+                    <div class="vision-indicator">
+                        <span class="vision-dot"></span>
+                        <span>👁️ البصير نشط — كنشوف الشاشة</span>
+                    </div>
+                    <div class="vision-stats">
+                        <span id="visionFps">0</span> fps
+                    </div>
+                </div>
+                <button id="stopVision" class="stop-vision-btn">⏹️ إيقاف البصير</button>
+            </div>
+
+            <div id="messages" class="messages">
+                <div class="welcome-screen">
+                    <div class="welcome-icon">🧠</div>
+                    <h2>ZAI Vision</h2>
+                    <p>مساعدك الذكي اللي كيشوف الشاشة وكيجاوبك بصوت</p>
+                    <div class="feature-cards">
+                        <div class="feature-card" onclick="startVisionMode()">
+                            <span class="feature-icon">👁️</span>
+                            <span>تشغيل البصير</span>
+                            <small>البوت كيشوف شاشتك</small>
+                        </div>
+                        <div class="feature-card" onclick="toggleVoice()">
+                            <span class="feature-icon">🎤</span>
+                            <span>محادثة صوتية</span>
+                            <small>هضر مع البوت</small>
+                        </div>
+                        <div class="feature-card" onclick="setQuickPrompt('اشرح لي اللي كاين فالشاشة')">
+                            <span class="feature-icon">🔍</span>
+                            <span>تحليل الشاشة</span>
+                        </div>
+                        <div class="feature-card" onclick="setQuickPrompt('كتب لي كود')">
+                            <span class="feature-icon">💻</span>
+                            <span>برمجة</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="voice-section">
+                    <button id="micBtn" class="mic-btn" title="هضر">
+                        <span id="micIcon">🎤</span>
+                    </button>
+                    <div id="voiceStatus" class="voice-status hidden">
+                        <span class="voice-pulse"></span>
+                        <span id="voiceStatusText">كنسمع...</span>
+                    </div>
+                </div>
+                <div class="input-wrapper">
+                    <textarea id="userInput" class="user-input" placeholder="اكتب ولا هضر..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn">➤</button>
+                </div>
+                <div class="input-hint">
+                    <span id="modelInfo">Pollinations AI • مجاني</span>
+                    <span class="hint-divider">|</span>
+                    <span id="voiceModeIndicator">الصوت: مغلق</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vision Container (hidden, for screen capture) -->
+    <canvas id="visionCanvas" class="hidden" width="1280" height="720"></canvas>
+    <video id="visionVideo" class="hidden" autoplay muted playsinline></video>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ الإعدادات</h3>
+                <button id="closeSettings" class="close-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label class="setting-label">مزود الذكاء الاصطناعي</label>
+                    <select id="aiProvider" class="setting-input">
+                        <option value="pollinations">Pollinations AI (مجاني)</option>
+                        <option value="groq">Groq API (يتطلب مفتاح)</option>
+                    </select>
+                </div>
+                <div class="setting-group" id="groqKeyGroup" style="display:none;">
+                    <label class="setting-label">مفتاح Groq API</label>
+                    <input type="password" id="groqApiKey" class="setting-input" placeholder="gsk_...">
+                    <small class="setting-hint">console.groq.com</small>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">النموذج</label>
+                    <select id="modelSelect" class="setting-input">
+                        <option value="llama">Llama 3.3 70B</option>
+                        <option value="mistral">Mistral</option>
+                        <option value="qwen">Qwen</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">سرعة البصير (فريم/ثانية)</label>
+                    <input type="range" id="visionFpsSetting" class="setting-input" min="1" max="10" value="2">
+                    <span id="fpsValue">2</span> تحليل/ثانية
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">صوت البوت</label>
+                    <select id="voiceSelect" class="setting-input">
+                        <option value="ar-SA">عربي (ذكر)</option>
+                        <option value="ar-SA-female">عربي (أنثى)</option>
+                        <option value="en-US">English</option>
+                        <option value="fr-FR">Français</option>
+                        <option value="none">بدون صوت</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">اللغة</label>
+                    <select id="language" class="setting-input">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">درجة الإبداع</label>
+                    <input type="range" id="temperature" class="setting-input" min="0" max="100" value="70">
+                    <span id="tempValue">0.7</span>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">تحليل تلقائي للشاشة</label>
+                    <select id="autoAnalyze" class="setting-input">
+                        <option value="manual">يدوي (فقط منين نسول)</option>
+                        <option value="auto">تلقائي (البوت كيقول واش شاف)</option>
+                        <option value="voice">صوتي (البوت كيهضر معايا)</option>
+                    </select>
+                    <small class="setting-hint">فالوضع التلقائي، البوت كيشوف الشاشة وكيحلل بلا ما تسول</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveSettings" class="save-btn">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Vision Overlay (PiP-style) -->
+    <div id="floatingOverlay" class="floating-overlay hidden">
+        <div class="overlay-header">
+            <span class="overlay-dot"></span>
+            <span>ZAI Vision</span>
+            <button id="closeOverlay" class="overlay-close">✕</button>
+        </div>
+        <div id="overlayContent" class="overlay-content">
+            <p class="overlay-waiting">👁️ البصير نشط... نتسناو الشاشة</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
