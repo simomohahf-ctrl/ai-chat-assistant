@@ -23,7 +23,7 @@ let speechSynth = window.speechSynthesis;
 
 // Settings
 let settings = {
-    provider: localStorage.getItem('zai_provider') || 'pollinations',
+    provider: localStorage.getItem('zai_provider') || 'auto',
     groqKey: localStorage.getItem('zai_groq_key') || '',
     model: localStorage.getItem('zai_model') || 'llama',
     temperature: parseFloat(localStorage.getItem('zai_temp') || '0.7'),
@@ -170,12 +170,13 @@ async function sendToAI(messages, screenImage) {
         }
     }
 
+    // Use user's own Groq key if provided (power users), otherwise use our free backend proxy
     if (settings.provider === 'groq' && settings.groqKey && screenImage) {
         return await sendToGroqVision(fullMessages);
     } else if (settings.provider === 'groq' && settings.groqKey) {
         return await sendToGroq(fullMessages);
     } else {
-        return await sendToPollinations(fullMessages, screenImage);
+        return await sendToBackendProxy(fullMessages, screenImage);
     }
 }
 
@@ -201,41 +202,20 @@ async function sendToGroqVision(messages) {
     return (await res.json()).choices[0].message.content;
 }
 
-async function sendToPollinations(messages, screenImage) {
-    // Use OpenAI-compatible endpoint
-    if (screenImage) {
-        const res = await fetch('https://text.pollinations.ai/openai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: 'openai',
-                messages: messages,
-                temperature: settings.temperature,
-                max_tokens: 2048
-            })
-        });
-        if (!res.ok) throw new Error(`خطأ Pollinations Vision (${res.status})`);
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content || 'ما قدرتش نحلل الشاشة';
-    }
-
-    // Text only
-    let prompt = '';
-    const recent = messages.slice(-6);
-    for (const msg of recent) {
-        if (msg.role === 'system') continue;
-        if (msg.role === 'user') prompt += `User: ${msg.content}\n`;
-        else prompt += `Assistant: ${msg.content}\n`;
-    }
-    prompt += 'Assistant: ';
-
-    const sysMsg = messages.find(m => m.role === 'system');
-    const sysText = sysMsg ? sysMsg.content : '';
-    const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?system=${encodeURIComponent(sysText)}&model=openai`;
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`خطأ Pollinations (${res.status})`);
-    return (await res.text()).trim();
+async function sendToBackendProxy(messages, screenImage) {
+    // Our own free backend proxy — powered by Groq (Llama 3.3 70B / Llama 4 Scout vision)
+    const res = await fetch('https://base44.app/api/apps/6a1082479423d64dfa027604/functions/zaiVisionChat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            messages: messages,
+            vision: !!screenImage,
+            temperature: settings.temperature
+        })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error || `خطأ فالسيرفر (${res.status})`);
+    return data.reply || 'ما قدرتش نجاوب دابا، عاود المحاولة';
 }
 
 // === SEND MESSAGE ===
@@ -548,7 +528,7 @@ function saveSettingsHandler() {
 }
 
 function updateModelInfo() {
-    const p = settings.provider === 'groq' ? 'Groq API' : 'Pollinations AI';
+    const p = settings.provider === 'groq' ? 'Groq API (شخصي)' : 'ZAI Cloud (مجاني)';
     const m = { llama: 'Llama 3.3 70B', mistral: 'Mistral', qwen: 'Qwen' };
     $('modelInfo').textContent = `${p} • ${m[settings.model] || 'Llama'}`;
 }
