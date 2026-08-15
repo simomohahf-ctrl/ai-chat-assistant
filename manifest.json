@@ -1,11 +1,1 @@
-{
-  "name": "ZAI Vision",
-  "short_name": "ZAI",
-  "description": "مساعد ذكي بصير - AI assistant with screen vision",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#0d1117",
-  "orientation": "portrait",
-  "icons": []
-}
+{"name":"ZAI Vision","short_name":"ZAI Vision","start_url":"./index.html","display":"standalone","background_color":"#0a0a1a","theme_color":"#0a0a1a","icons":[],"description":"AI Chat with Vision + Video Analysis (200MB) powered by Meta Llama 4"}
